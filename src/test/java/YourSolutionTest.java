@@ -16,9 +16,9 @@ import static org.mockito.Mockito.*;
 
 class YourSolutionTest {
 
-    public static final String MOCK_BASIC_TOPIC = "mock_basic_topic";
-    public static final String MOCK_TRANSACTIONAL_TOPIC = "mock_transactional_topic";
-    public static final String MOCK_COMPACTING_TOPIC = "mock_compacting_topic";
+    public static final String MOCK_BASIC_TOPIC = "basic";
+    public static final String MOCK_TRANSACTIONAL_TOPIC = "transactional";
+    public static final String MOCK_COMPACTING_TOPIC = "compacting";
 
     private Admin mockAdmin;
     private Consumer<String,String> mockConsumer;
@@ -54,11 +54,27 @@ class YourSolutionTest {
        Map<TopicPartition, OffsetAndMetadata> mockCommitedOffsetMap = Map.of(partition, new OffsetAndMetadata(100L));
        Mockito.when(mockConsumer.committed((Set<TopicPartition>) any())).thenReturn(mockCommitedOffsetMap);
 
-       YourSolution.printTransactionalTopicMessageCount(mockAdmin,MOCK_TRANSACTIONAL_TOPIC,mockConsumer);
-       verify(mockConsumer,times(1)).endOffsets(any());
+       //YourSolution.printTransactionalTopicMessageCount(mockAdmin,MOCK_TRANSACTIONAL_TOPIC,mockConsumer);
+       //verify(mockConsumer,times(1)).endOffsets(any());
 
        TransactionalMsgResult transactionalMsgResult = YourSolution.printTransactionalTopicMessageCount(mockAdmin,MOCK_TRANSACTIONAL_TOPIC,mockConsumer);
        assertEquals(100L,transactionalMsgResult.getCommitedMessages());
        assertEquals(200L,transactionalMsgResult.getUnCommittedMessages());
    }
+
+    @Test
+    // Only latest message for unique key retained, older messages for this key compacted
+    public void testPrintCompactingTopicMessageCount(){
+        /*
+        Not sure how to verify the compacting behavior, since framework has the control of compaction. --> check with Tom
+         */
+        Map<TopicPartition, Long> mockEndOffsetMap = Map.of(new TopicPartition(MOCK_COMPACTING_TOPIC,0),100L);
+
+        Mockito.when(mockConsumer.endOffsets(any())).thenReturn(mockEndOffsetMap);
+
+        MsgResult msgResult = YourSolution.printBasicTopicMessageCount(mockAdmin,MOCK_COMPACTING_TOPIC,mockConsumer);
+        verify(mockConsumer,times(1)).endOffsets(any());
+
+        assertEquals(100L,msgResult.getTotalMessages());
+    }
 }

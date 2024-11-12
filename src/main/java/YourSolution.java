@@ -32,7 +32,7 @@ public class YourSolution {
         try (Admin adminClient = AdminClient.create(kafkaProps)) {
             printBasicTopicMessageCount(adminClient,BASIC_TOPIC,createConsumer(kafkaProps));
             printTransactionalTopicMessageCount(adminClient,TRANSACTIONAL_TOPIC,createConsumer(kafkaProps));
-            printCompactionTopicMessageCount(adminClient,COMPACTING_TOPIC,createConsumer(kafkaProps));
+            printCompactingTopicMessageCount(adminClient,COMPACTING_TOPIC,createConsumer(kafkaProps));
         }
 
     }
@@ -88,7 +88,7 @@ public class YourSolution {
         }
     }
 
-    private static void printCompactionTopicMessageCount(Admin adminClient, String topic, Consumer<String,String> consumer){
+    private static void printCompactingTopicMessageCount(Admin adminClient, String topic, Consumer<String,String> consumer){
 
         try {
             consumer.subscribe(Collections.singletonList(topic));
