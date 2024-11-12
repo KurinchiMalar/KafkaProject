@@ -46,31 +46,31 @@ public class SimulatedMicroservices {
 
         Callable<Boolean> transactionalProducerTask = () -> {
             Producer<String,String> producer = new KafkaProducer<>(Context.getTransactionalProducerProperties());
-                producer.initTransactions();
-                producer.beginTransaction();
-                while (true) {
+            producer.initTransactions();
+            producer.beginTransaction();
+            while (true) {
 
-                    ProducerRecord<String, String> record = new ProducerRecord<>(
-                            Context.TRANSACTIONAL_TOPIC,
-                            UUID.randomUUID().toString());
-                    producer.send(record);
-                    transactionalMessagesProduced++;
-                    // should end the transaction?
+                ProducerRecord<String, String> record = new ProducerRecord<>(
+                        Context.TRANSACTIONAL_TOPIC,
+                        UUID.randomUUID().toString());
+                producer.send(record);
+                transactionalMessagesProduced++;
+                // should end the transaction?
+                if (RANDOM.nextBoolean()) {
                     if (RANDOM.nextBoolean()) {
-                        if (RANDOM.nextBoolean()) {
-                            producer.commitTransaction();
-                        } else {
-                            producer.abortTransaction();
-                        }
-                        producer.beginTransaction();
+                        producer.commitTransaction();
+                    } else {
+                        producer.abortTransaction();
                     }
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-                        // ignored
-                    }
-
+                    producer.beginTransaction();
                 }
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    // ignored
+                }
+
+            }
         };
 
         Callable<Boolean> compactingProducerTask = () -> {
@@ -93,7 +93,7 @@ public class SimulatedMicroservices {
         Callable<Boolean> loggingTask = () -> {
             while(true) {
                 List.of(
-                        new String[] { Context.BASIC_TOPIC, String.valueOf(basicMessagesProduced) },
+                                new String[] { Context.BASIC_TOPIC, String.valueOf(basicMessagesProduced) },
                                 new String[] { Context.COMPACTING_TOPIC, String.valueOf(compactingMessagesProduced) },
                                 new String[] { Context.COMPACTING_TOPIC, String.valueOf(transactionalMessagesProduced) })
                         .forEach(topicMessageCount -> {
@@ -104,11 +104,11 @@ public class SimulatedMicroservices {
         };
 
         List<Future<Boolean>> futures = PRODUCER_EXECUTOR.invokeAll(
-            List.of(basicProducerTask,
-                    transactionalProducerTask,
-                    compactingProducerTask,
-                    loggingTask
-            )
+                List.of(basicProducerTask,
+                        transactionalProducerTask,
+                        compactingProducerTask,
+                        loggingTask
+                )
         );
 
         futures.forEach(future -> {
