@@ -17,19 +17,21 @@ public class YourSolution {
     private static final String COMPACTING_TOPIC = Context.COMPACTING_TOPIC;
 
 
-
+    // Exception handling --> InterruptedException  / ExecutionException / KafkaException to be handled
+    // I am keeping it as Uber level Exception for brevity
     public static void main(String[] args) {
 
         System.out.println("Running My Solution...");
 
         Properties kafkaProps = Context.getKafkaConnectionProperties();
-
+        // Do check KafkaProps is null throw exception , ignoring the same as of now.
         printNumberOfMessages(kafkaProps);
     }
 
     private static void printNumberOfMessages(Properties kafkaProps){
         // Admin to manage Kafka topics
         try (Admin adminClient = AdminClient.create(kafkaProps)) {
+
             printBasicTopicMessageCount(adminClient,BASIC_TOPIC,createConsumer(kafkaProps));
             printTransactionalTopicMessageCount(adminClient,TRANSACTIONAL_TOPIC,createConsumer(kafkaProps));
             printCompactingTopicMessageCount(adminClient,COMPACTING_TOPIC,createConsumer(kafkaProps));
