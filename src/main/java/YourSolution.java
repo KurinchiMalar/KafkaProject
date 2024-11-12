@@ -37,7 +37,8 @@ public class YourSolution {
 
     }
 
-    protected static void printBasicTopicMessageCount(Admin adminClient, String topic, Consumer<String,String> consumer){
+    protected static MsgResult printBasicTopicMessageCount(Admin adminClient, String topic, Consumer<String,String> consumer){
+        long totalMessagesInTopic = 0L;
         try {
 
             consumer.subscribe(Collections.singletonList(topic));
@@ -45,15 +46,16 @@ public class YourSolution {
 
             Map<TopicPartition, Long> endOffsetMap =  consumer.endOffsets(consumer.assignment());
 
-            long totalMessagesInTopic = endOffsetMap.values().stream().mapToLong(Long::longValue).sum();
+            totalMessagesInTopic = endOffsetMap.values().stream().mapToLong(Long::longValue).sum();
             System.out.println("Total Messages in topic : "+ topic +" is : "+totalMessagesInTopic);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        return new MsgResult(totalMessagesInTopic);
 
     }
 
-    private static void printTransactionalTopicMessageCount(Admin adminClient, String topic, Consumer<String,String> consumer){
+    protected static TransactionalMsgResult printTransactionalTopicMessageCount(Admin adminClient, String topic, Consumer<String,String> consumer){
         try {
             consumer.subscribe(Collections.singletonList(topic));
             consumer.poll(0);
@@ -80,7 +82,7 @@ public class YourSolution {
             }
             System.out.println("Total committed Messages in topic : "+ topic +" is :"+committedMsgs);
             System.out.println("Total uncommited Messages in topic : "+ topic +" is :"+unCommitedMsgs);
-
+            return new TransactionalMsgResult(committedMsgs,unCommitedMsgs);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
