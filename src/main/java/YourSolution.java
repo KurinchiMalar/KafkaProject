@@ -50,6 +50,8 @@ public class YourSolution {
 
             totalMessagesInTopic = endOffsetMap.values().stream().mapToLong(Long::longValue).sum();
             System.out.println("Total Messages in topic : "+ topic +" is : "+totalMessagesInTopic);
+            // Commit offsets asynchronously
+            consumer.commitAsync();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -60,11 +62,18 @@ public class YourSolution {
     protected static TransactionalMsgResult printTransactionalTopicMessageCount(Admin adminClient, String topic, Consumer<String,String> consumer){
         try {
             consumer.subscribe(Collections.singletonList(topic));
-            consumer.poll(Duration.ofMillis(100));
+            System.out.println("Consumer subscribed to topic "+topic);
 
+            //consumer.poll(Duration.ofMillis(100));
+            while(consumer.assignment().isEmpty()){
+                System.out.println("Still polling..."+consumer.toString()+" assignments: "+consumer.assignment());
+                consumer.poll(Duration.ofMillis(100));
+            }
+            System.out.println("Consumer assigned partitions :" + consumer.assignment());
             long committedMsgs = 0;
             long unCommitedMsgs = 0;
 
+            // consumer.assignment() is 0 , during debug . Let's poll until we have something assigned for this consumer.
             Map<TopicPartition, Long> endOffsetMap =consumer.endOffsets(consumer.assignment());
             Map<TopicPartition, OffsetAndMetadata> committedOffSetMap = consumer.committed(consumer.assignment());
 
@@ -83,6 +92,8 @@ public class YourSolution {
             }
             System.out.println("Total committed Messages in topic : "+ topic +" is :"+committedMsgs);
             System.out.println("Total uncommited Messages in topic : "+ topic +" is :"+unCommitedMsgs);
+            // Commit offsets asynchronously
+            consumer.commitAsync();
             return new TransactionalMsgResult(committedMsgs,unCommitedMsgs);
         } catch (Exception e) {
             throw new RuntimeException(e);

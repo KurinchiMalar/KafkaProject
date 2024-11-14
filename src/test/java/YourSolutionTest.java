@@ -6,6 +6,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import java.util.*;
@@ -47,6 +48,8 @@ class YourSolutionTest {
     public void testPrintTransactionalTopicMessageCount(){
 
        TopicPartition partition = new TopicPartition(MOCK_TRANSACTIONAL_TOPIC,0);
+       Mockito.when(mockConsumer.assignment()).thenReturn(Collections.singleton(partition));
+       //Mockito.when(mockConsumer.assignment().isEmpty()).thenReturn(true);
 
        Map<TopicPartition, Long> mockEndOffsetMap = Map.of(partition,300L);
        Mockito.when(mockConsumer.endOffsets(any())).thenReturn(mockEndOffsetMap);
@@ -60,6 +63,7 @@ class YourSolutionTest {
        TransactionalMsgResult transactionalMsgResult = YourSolution.printTransactionalTopicMessageCount(mockAdmin,MOCK_TRANSACTIONAL_TOPIC,mockConsumer);
        assertEquals(100L,transactionalMsgResult.getCommitedMessages());
        assertEquals(200L,transactionalMsgResult.getUnCommittedMessages());
+       verify(mockConsumer,times(1)).commitAsync();
    }
 
     @Test
