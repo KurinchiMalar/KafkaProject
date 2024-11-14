@@ -1,14 +1,10 @@
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Properties;
+import java.time.Duration;
+import java.util.*;
 
 public class YourSolution {
 
@@ -32,9 +28,13 @@ public class YourSolution {
         // Admin to manage Kafka topics
         try (Admin adminClient = AdminClient.create(kafkaProps)) {
 
-            printBasicTopicMessageCount(adminClient,BASIC_TOPIC,createConsumer(kafkaProps));
-            printTransactionalTopicMessageCount(adminClient,TRANSACTIONAL_TOPIC,createConsumer(kafkaProps));
-            printCompactingTopicMessageCount(adminClient,COMPACTING_TOPIC,createConsumer(kafkaProps));
+            Consumer<String,String> basicConsumer = KafkaConsumerFactory.createConsumer(kafkaProps,"basic-consumer-group",BASIC_TOPIC);
+            Consumer<String,String> transactionalConsumer = KafkaConsumerFactory.createConsumer(kafkaProps,"transactional-consumer-group",TRANSACTIONAL_TOPIC);
+            Consumer<String,String> compactingConsumer = KafkaConsumerFactory.createConsumer(kafkaProps,"compacting-consumer-group",COMPACTING_TOPIC);
+
+            printBasicTopicMessageCount(adminClient,BASIC_TOPIC,basicConsumer);
+            printTransactionalTopicMessageCount(adminClient,TRANSACTIONAL_TOPIC,transactionalConsumer);
+            printCompactingTopicMessageCount(adminClient,COMPACTING_TOPIC,compactingConsumer);
         }
 
     }
@@ -60,7 +60,7 @@ public class YourSolution {
     protected static TransactionalMsgResult printTransactionalTopicMessageCount(Admin adminClient, String topic, Consumer<String,String> consumer){
         try {
             consumer.subscribe(Collections.singletonList(topic));
-            consumer.poll(0);
+            consumer.poll(Duration.ofMillis(100));
 
             long committedMsgs = 0;
             long unCommitedMsgs = 0;
@@ -78,7 +78,6 @@ public class YourSolution {
                 committedMsgs += curPartitionCommitedOffset;
 
                 //Rest of messages other than committedMsgs correspond to UncommitedMessages
-
                 unCommitedMsgs += (curPartitionEndOffset - curPartitionCommitedOffset);
 
             }
@@ -90,35 +89,31 @@ public class YourSolution {
         }
     }
 
-    private static void printCompactingTopicMessageCount(Admin adminClient, String topic, Consumer<String,String> consumer){
+    protected static void printCompactingTopicMessageCount(Admin adminClient, String topic, Consumer<String,String> consumer){
 
-        try {
+
             consumer.subscribe(Collections.singletonList(topic));
-            consumer.poll(0);
+            Set<String> uniqueKeys = new HashSet<>(); // Set to track distinct keys
 
-            Map<TopicPartition, Long> endOffsetsMap = consumer.endOffsets(consumer.assignment());
-            long totalCompatedMessages = endOffsetsMap.values().stream().mapToLong(Long::longValue).sum();
-            System.out.println("Total Messages in topic : "+ topic +" is : "+totalCompatedMessages);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
+            try {
+                    // Poll for up to 10s for new messages
+                var records = consumer.poll(10000);
 
+                    // Process each record
+                for (ConsumerRecord<String, String> record : records) {
+                    // Add the key to the set (only distinct keys will be counted)
+                    uniqueKeys.add(record.key());
+                }
 
-    private static Properties getConsumerProps(Properties kafkaProps){
-        Properties consumerProps = new Properties();
-        consumerProps.putAll(kafkaProps);
-        consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,"org.apache.kafka.common.serialization.StringDeserializer");
-        consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,"org.apache.kafka.common.serialization.StringDeserializer");
-        consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,"earliest");
-        consumerProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG,"false");
-        consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, "consumer-group1");
+                // Print the total number of distinct messages (keys) after processing records
+                System.out.println("Total number of messages (distinct keys): " + uniqueKeys.size());
 
-        return consumerProps;
-    }
+                // Commit offsets asynchronously
+                consumer.commitAsync();
 
-    private static Consumer<String, String> createConsumer(Properties kafkaProps){
-        return new KafkaConsumer<>(getConsumerProps(kafkaProps));
+            } finally {
+                consumer.close();
+            }
     }
 
 }

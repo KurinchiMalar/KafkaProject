@@ -59,6 +59,8 @@ public class SimulatedMicroservices {
                 if (RANDOM.nextBoolean()) {
                     if (RANDOM.nextBoolean()) {
                         producer.commitTransaction();
+                        System.out.println("Committed Transactional ...");
+                        Thread.sleep(500);
                     } else {
                         producer.abortTransaction();
                     }
@@ -95,7 +97,7 @@ public class SimulatedMicroservices {
                 List.of(
                                 new String[] { Context.BASIC_TOPIC, String.valueOf(basicMessagesProduced) },
                                 new String[] { Context.COMPACTING_TOPIC, String.valueOf(compactingMessagesProduced) },
-                                new String[] { Context.COMPACTING_TOPIC, String.valueOf(transactionalMessagesProduced) })
+                                new String[] { Context.TRANSACTIONAL_TOPIC, String.valueOf(transactionalMessagesProduced) })
                         .forEach(topicMessageCount -> {
                             System.out.println(DATE_FORMAT.format(new Date()) + " --> Produced: " + topicMessageCount[1] + " messages to topic: " + topicMessageCount[0]);
                         });
