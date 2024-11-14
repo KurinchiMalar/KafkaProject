@@ -100,8 +100,7 @@ public class YourSolution {
         }
     }
 
-    protected static void printCompactingTopicMessageCount(Admin adminClient, String topic, Consumer<String,String> consumer){
-
+    protected static MsgResult printCompactingTopicMessageCount(Admin adminClient, String topic, Consumer<String,String> consumer){
 
             consumer.subscribe(Collections.singletonList(topic));
             Set<String> uniqueKeys = new HashSet<>(); // Set to track distinct keys
@@ -115,13 +114,14 @@ public class YourSolution {
                     // Add the key to the set (only distinct keys will be counted)
                     uniqueKeys.add(record.key());
                 }
-
+                int totalMessagesAfterCompaction = uniqueKeys.size();
                 // Print the total number of distinct messages (keys) after processing records
-                System.out.println("Total number of messages (distinct keys): " + uniqueKeys.size());
+                System.out.println("Total number of messages (distinct keys): " + totalMessagesAfterCompaction);
 
                 // Commit offsets asynchronously
                 consumer.commitAsync();
 
+                return new MsgResult(totalMessagesAfterCompaction);
             } finally {
                 consumer.close();
             }

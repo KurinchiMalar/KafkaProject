@@ -37,7 +37,7 @@ class YourSolutionTest {
        Map<TopicPartition, Long> mockEndOffsetMap = Map.of(new TopicPartition(MOCK_BASIC_TOPIC,0),100L);
 
        Mockito.when(mockConsumer.endOffsets(any())).thenReturn(mockEndOffsetMap);
-
+       Mockito.doNothing().when(mockConsumer).commitAsync();
        MsgResult msgResult = YourSolution.printBasicTopicMessageCount(mockAdmin,MOCK_BASIC_TOPIC,mockConsumer);
        verify(mockConsumer,times(1)).endOffsets(any());
 
@@ -59,7 +59,7 @@ class YourSolutionTest {
 
        //YourSolution.printTransactionalTopicMessageCount(mockAdmin,MOCK_TRANSACTIONAL_TOPIC,mockConsumer);
        //verify(mockConsumer,times(1)).endOffsets(any());
-
+       Mockito.doNothing().when(mockConsumer).commitAsync();
        TransactionalMsgResult transactionalMsgResult = YourSolution.printTransactionalTopicMessageCount(mockAdmin,MOCK_TRANSACTIONAL_TOPIC,mockConsumer);
        assertEquals(100L,transactionalMsgResult.getCommitedMessages());
        assertEquals(200L,transactionalMsgResult.getUnCommittedMessages());
@@ -69,15 +69,25 @@ class YourSolutionTest {
     @Test
     // Only latest message for unique key retained, older messages for this key compacted
     public void testPrintCompactingTopicMessageCount(){
+        TopicPartition partition = new TopicPartition(MOCK_COMPACTING_TOPIC,0);
+
         ConsumerRecord<String,String> r1 = new ConsumerRecord<>("compacting",0,0,"key1","hello");
         ConsumerRecord<String,String> r2 = new ConsumerRecord<>("compacting",0,0,"key2","helloworld");
-
         // new value with same key
         ConsumerRecord<String,String> r3 = new ConsumerRecord<>("compacting",0,0,"key1","hellonew");
         /*TBD will have to handle the casting properly here and will be able to just verify the invocations*/
        // Mockito.when(mockConsumer.poll(10000)).thenReturn(Collections.singletonList(r1,r2,r3));
        //YourSolution.printCompactingTopicMessageCount(mockAdmin,MOCK_COMPACTING_TOPIC,mockConsumer);
        // verify(mockConsumer,times(1)).commitAsync();
-        assertTrue(true);
+
+
+        // Mock up ConsumerRecords<K,V>
+        List<ConsumerRecord<String,String>> consumerRecordList = List.of(r1,r2,r3);
+        var mockConsumerRecords = new ConsumerRecords(Map.of(partition,consumerRecordList));
+        Mockito.when(mockConsumer.poll(10000)).thenReturn(mockConsumerRecords);
+        Mockito.doNothing().when(mockConsumer).commitAsync();
+
+        MsgResult msgResult = YourSolution.printCompactingTopicMessageCount(mockAdmin,MOCK_COMPACTING_TOPIC,mockConsumer);
+        assertEquals(2L,msgResult.getTotalMessages());
     }
 }
