@@ -49,7 +49,8 @@ public class YourSolution {
             Map<TopicPartition, Long> endOffsetMap =  consumer.endOffsets(consumer.assignment());
 
             totalMessagesInTopic = endOffsetMap.values().stream().mapToLong(Long::longValue).sum();
-            System.out.println("Total Messages in topic : "+ topic +" is : "+totalMessagesInTopic);
+            System.out.println("TOPIC : "+topic +" Total Messages : "+totalMessagesInTopic);
+            System.out.println("-----------------------------------------------------");
             // Commit offsets asynchronously
             consumer.commitAsync();
         } catch (Exception e) {
@@ -90,8 +91,11 @@ public class YourSolution {
                 unCommitedMsgs += (curPartitionEndOffset - curPartitionCommitedOffset);
 
             }
-            System.out.println("Total committed Messages in topic : "+ topic +" is :"+committedMsgs);
-            System.out.println("Total uncommited Messages in topic : "+ topic +" is :"+unCommitedMsgs);
+            System.out.println("TOPIC : "+topic);
+
+            System.out.println("Total committed Messages : "+committedMsgs);
+            System.out.println("Total uncommited Messages : "+unCommitedMsgs);
+            System.out.println("-----------------------------------------------------");
             // Commit offsets asynchronously
             consumer.commitAsync();
             return new TransactionalMsgResult(committedMsgs,unCommitedMsgs);
@@ -115,8 +119,10 @@ public class YourSolution {
                     uniqueKeys.add(record.key());
                 }
                 int totalMessagesAfterCompaction = uniqueKeys.size();
+                System.out.println("TOPIC : "+topic);
                 // Print the total number of distinct messages (keys) after processing records
                 System.out.println("Total number of messages (distinct keys): " + totalMessagesAfterCompaction);
+                System.out.println("-----------------------------------------------------");
 
                 // Commit offsets asynchronously
                 consumer.commitAsync();
