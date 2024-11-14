@@ -65,7 +65,6 @@ public class YourSolution {
             consumer.subscribe(Collections.singletonList(topic));
             System.out.println("Consumer subscribed to topic "+topic);
 
-            //consumer.poll(Duration.ofMillis(100));
             while(consumer.assignment().isEmpty()){
                 System.out.println("Still polling..."+consumer.toString()+" assignments: "+consumer.assignment());
                 consumer.poll(Duration.ofMillis(100));
@@ -74,7 +73,6 @@ public class YourSolution {
             long committedMsgs = 0;
             long unCommitedMsgs = 0;
 
-            // consumer.assignment() is 0 , during debug . Let's poll until we have something assigned for this consumer.
             Map<TopicPartition, Long> endOffsetMap =consumer.endOffsets(consumer.assignment());
             Map<TopicPartition, OffsetAndMetadata> committedOffSetMap = consumer.committed(consumer.assignment());
 
@@ -110,17 +108,14 @@ public class YourSolution {
             Set<String> uniqueKeys = new HashSet<>(); // Set to track distinct keys
 
             try {
-                    // Poll for up to 10s for new messages
-                var records = consumer.poll(10000);
+                var records = consumer.poll(10000); // 10s polling
 
-                    // Process each record
                 for (ConsumerRecord<String, String> record : records) {
-                    // Add the key to the set (only distinct keys will be counted)
                     uniqueKeys.add(record.key());
                 }
                 int totalMessagesAfterCompaction = uniqueKeys.size();
+
                 System.out.println("TOPIC : "+topic);
-                // Print the total number of distinct messages (keys) after processing records
                 System.out.println("Total number of messages (distinct keys): " + totalMessagesAfterCompaction);
                 System.out.println("-----------------------------------------------------");
 
